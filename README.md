@@ -1,5 +1,5 @@
 # Docker-fro-wordpress
-#   Version: 3.0
+<h2>  Version: 3.0 </h2>
 
 #   MySql Vers: 5.7
 #   Php Vers 7.2-apache
