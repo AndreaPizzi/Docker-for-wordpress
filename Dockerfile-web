@@ -1,0 +1,54 @@
+FROM php:7.2-apache
+
+RUN apt-get update && apt-get install -y \
+    libmcrypt-dev \
+    libjpeg62-turbo-dev \
+    libpcre3-dev \
+    libpng-dev \
+    libfreetype6-dev \
+    libxml2-dev \
+    libicu-dev \
+    mysql-client \
+    wget \
+    zlib1g-dev
+
+RUN \
+    docker-php-ext-install iconv mbstring mysqli pdo pdo_mysql zip gd intl opcache
+
+# Configure GD Libraries
+RUN docker-php-ext-configure gd --with-freetype-dir=/usr/include/ --with-jpeg-dir=/usr/include/
+RUN docker-php-ext-install -j$(nproc) gd
+
+RUN echo "error_reporting = -1" >> /usr/local/etc/php/php.ini
+RUN echo "display_errors = On" >> /usr/local/etc/php/php.ini
+RUN echo "display_startup_errors = On" >> /usr/local/etc/php/php.ini
+
+RUN echo "log_errors = On" >> /usr/local/etc/php/php.ini
+RUN echo "error_log = /dev/stderr" >> /usr/local/etc/php/php.ini
+
+# Setup the Xdebug version to install
+ENV XDEBUG_VERSION 2.6.0
+ENV XDEBUG_MD5 b5264cc03bf68fcbb04b97229f96dca505d7b87ec2fb3bd4249896783d29cbdc
+
+# Install Xdebug
+RUN set -x \
+    && curl -SL "http://xdebug.org/files/xdebug-$XDEBUG_VERSION.tgz" -o xdebug.tgz \
+    && mkdir -p /usr/src/xdebug \
+    && tar -xf xdebug.tgz -C /usr/src/xdebug --strip-components=1 \
+    && rm xdebug.* \
+    && cd /usr/src/xdebug \
+    && phpize \
+    && ./configure \
+    && make -j"$(nproc)" \
+    && make install \
+    && make clean
+
+#Set up debugger
+RUN echo "xdebug.remote_enable=1" >> /usr/local/etc/php/php.ini
+#Please provide your host (local machine IP) instead of 192.168.2.117
+RUN echo "xdebug.remote_connect_back=1" >> /usr/local/etc/php/php.ini
+
+RUN a2enmod rewrite
+
+ENV APACHE_DOCUMENT_ROOT /var/www/html/public
+WORKDIR /var/www/html/
